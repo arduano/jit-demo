@@ -3,13 +3,9 @@ use std::{ffi::CStr, process::exit, ptr};
 use llvm_sys::{
     bit_reader::LLVMParseBitcodeInContext2,
     core::{LLVMCreateMemoryBufferWithMemoryRangeCopy, LLVMPrintModuleToFile},
-    orc2::{
-        LLVMOrcCreateNewThreadSafeContext, LLVMOrcThreadSafeContextGetContext,
-        LLVMOrcThreadSafeContextRef,
-    },
-    prelude::{LLVMContextRef, LLVMModuleRef},
+    orc2::{LLVMOrcCreateNewThreadSafeContext, LLVMOrcThreadSafeContextGetContext},
+    prelude::LLVMModuleRef,
 };
-use serde_json::de::Read;
 
 use super::{to_c_str, ModuleWithContext};
 

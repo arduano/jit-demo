@@ -20,7 +20,7 @@ pub unsafe extern "C" fn fn_sig_bad(_vec: &[User]) -> Vec<User> {
 
 #[no_mangle]
 #[inline(always)]
-pub unsafe extern "C" fn fn_sig(_vec: &[User], output_vec: *mut Vec<User>) {
+pub unsafe extern "C" fn fn_sig(_vec: &[User], _output_vec: *mut Vec<User>) {
     // Function used purely for copying the function signature in LLVM
     unimplemented!()
 }

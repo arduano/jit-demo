@@ -1,4 +1,4 @@
-use runner::{read_data, build_complex_filter, interpreted, jit::build_module};
+use runner::{build_complex_filter, interpreted, jit::build_module, read_data};
 
 fn main() {
     let users = read_data();

@@ -1,8 +1,6 @@
 use std::{
     borrow::Cow,
     ffi::{CStr, CString},
-    mem::MaybeUninit,
-    ptr,
 };
 
 use llvm_sys::{
@@ -43,7 +41,7 @@ pub(crate) fn to_c_str<'s>(mut s: &'s str) -> Cow<'s, CStr> {
 }
 
 pub struct CallableJitFn {
-    ee: exec_engine::JitExecutionEngine,
+    _ee: exec_engine::JitExecutionEngine,
     fn_ptr: exec_engine::JitFunction,
 }
 
@@ -83,6 +81,6 @@ pub unsafe fn build_module(filters: &JoinFilters) -> CallableJitFn {
 
     CallableJitFn {
         fn_ptr: exec_engine.get_function_ptr("execute"),
-        ee: exec_engine,
+        _ee: exec_engine,
     }
 }
