@@ -77,7 +77,6 @@ fn recompile_project_into_llvm_bc(project_path: impl AsRef<Path>) -> ProjectLlvm
     let absolute_path = project_path.canonicalize().unwrap();
     let absolute_path_str = absolute_path.to_str().unwrap();
     execute_shell_command(&format!("cd {absolute_path_str} && RUSTFLAGS=\"--emit=llvm-bc\" cargo build --package=functions --release -Z build-std=\"core,alloc\" --target x86_64-unknown-linux-gnu --target-dir ./target"));
-    // execute_shell_command(&format!("cd {absolute_path_str} && RUSTFLAGS=\"--emit=llvm-ir\" cargo build --package=functions --release -Z build-std=\"core,alloc\" --target x86_64-unknown-linux-gnu  --target-dir ./target"));
 
     // Find all compiled deps
     let deps_path = target_path.join("release").join("deps");

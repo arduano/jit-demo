@@ -1,8 +1,8 @@
 {
-    "rust-analyzer.server.extraEnv": {
-        "LLVM_SYS_170_PREFIX": "/home/arduano/Documents/LLVM-pkg/llvm-project-17.0.4.src/build"
-    },
-    "terminal.integrated.env.linux": {
-        "LLVM_SYS_170_PREFIX": "/home/arduano/Documents/LLVM-pkg/llvm-project-17.0.4.src/build"
-    },
+    // "rust-analyzer.server.extraEnv": {
+    //     "LLVM_SYS_170_PREFIX": "path/to/llvm/build"
+    // },
+    // "terminal.integrated.env.linux": {
+    //     "LLVM_SYS_170_PREFIX": "path/to/llvm/build"
+    // },
 }
