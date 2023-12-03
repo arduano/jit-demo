@@ -17,9 +17,13 @@ use llvm_sys::target_machine::*;
 
 use llvm_sys::transforms::pass_builder::*;
 
-use llvm_sys::LLVMLinkage;
-use llvm_sys::LLVMModule;
 use toml::Value;
+use transformations::mark_all_as_private;
+use transformations::mark_all_module_items_for_linking;
+use transformations::module_purge_module_asm;
+use transformations::replace_linked_with_private;
+
+mod transformations;
 
 fn execute_shell_command(command: &str) {
     use std::process::Command;
@@ -111,119 +115,6 @@ fn recompile_project_into_llvm_bc(project_path: impl AsRef<Path>) -> ProjectLlvm
     ProjectLlvmBc { project, deps }
 }
 
-unsafe fn mark_all_module_items_for_linking(module: *mut LLVMModule) {
-    let mut f = LLVMGetFirstGlobal(module);
-    while !f.is_null() {
-        LLVMSetLinkage(f, LLVMLinkage::LLVMLinkOnceAnyLinkage);
-        f = LLVMGetNextGlobal(f);
-    }
-
-    let mut f = LLVMGetFirstGlobalAlias(module);
-    while !f.is_null() {
-        LLVMSetLinkage(f, LLVMLinkage::LLVMLinkOnceAnyLinkage);
-        f = LLVMGetNextGlobalAlias(f);
-    }
-
-    let mut f = LLVMGetFirstGlobalIFunc(module);
-    while !f.is_null() {
-        LLVMSetLinkage(f, LLVMLinkage::LLVMLinkOnceAnyLinkage);
-        f = LLVMGetNextGlobalIFunc(f);
-    }
-
-    let mut f = LLVMGetFirstFunction(module);
-    while !f.is_null() {
-        LLVMSetLinkage(f, LLVMLinkage::LLVMLinkOnceAnyLinkage);
-        f = LLVMGetNextFunction(f);
-    }
-}
-
-unsafe fn replace_linked_with_private(module: *mut LLVMModule) {
-    let mut f = LLVMGetFirstGlobal(module);
-    while !f.is_null() {
-        let current = LLVMGetLinkage(f);
-        if current == LLVMLinkage::LLVMLinkOnceAnyLinkage {
-            LLVMSetLinkage(f, LLVMLinkage::LLVMPrivateLinkage);
-        }
-
-        f = LLVMGetNextGlobal(f);
-    }
-
-    let mut f = LLVMGetFirstGlobalAlias(module);
-    while !f.is_null() {
-        let current = LLVMGetLinkage(f);
-        if current == LLVMLinkage::LLVMLinkOnceAnyLinkage {
-            LLVMSetLinkage(f, LLVMLinkage::LLVMPrivateLinkage);
-        }
-
-        f = LLVMGetNextGlobalAlias(f);
-    }
-
-    let mut f = LLVMGetFirstGlobalIFunc(module);
-    while !f.is_null() {
-        let current = LLVMGetLinkage(f);
-        if current == LLVMLinkage::LLVMLinkOnceAnyLinkage {
-            LLVMSetLinkage(f, LLVMLinkage::LLVMPrivateLinkage);
-        }
-
-        f = LLVMGetNextGlobalIFunc(f);
-    }
-
-    let mut f = LLVMGetFirstFunction(module);
-    while !f.is_null() {
-        let current = LLVMGetLinkage(f);
-        if current == LLVMLinkage::LLVMLinkOnceAnyLinkage {
-            LLVMSetLinkage(f, LLVMLinkage::LLVMPrivateLinkage);
-        }
-
-        f = LLVMGetNextFunction(f);
-    }
-}
-
-unsafe fn mark_all_as_private(module: *mut LLVMModule) {
-    let mut f = LLVMGetFirstGlobal(module);
-    while !f.is_null() {
-        let current = LLVMGetLinkage(f);
-        if current != LLVMLinkage::LLVMExternalLinkage {
-            LLVMSetLinkage(f, LLVMLinkage::LLVMPrivateLinkage);
-        }
-
-        f = LLVMGetNextGlobal(f);
-    }
-
-    let mut f = LLVMGetFirstGlobalAlias(module);
-    while !f.is_null() {
-        let current = LLVMGetLinkage(f);
-        if current != LLVMLinkage::LLVMExternalLinkage {
-            LLVMSetLinkage(f, LLVMLinkage::LLVMPrivateLinkage);
-        }
-
-        f = LLVMGetNextGlobalAlias(f);
-    }
-
-    let mut f = LLVMGetFirstGlobalIFunc(module);
-    while !f.is_null() {
-        let current = LLVMGetLinkage(f);
-        if current != LLVMLinkage::LLVMExternalLinkage {
-            LLVMSetLinkage(f, LLVMLinkage::LLVMPrivateLinkage);
-        }
-
-        f = LLVMGetNextGlobalIFunc(f);
-    }
-
-    let mut f = LLVMGetFirstFunction(module);
-    while !f.is_null() {
-        if LLVMIsDeclaration(f) == 0 {
-            LLVMSetLinkage(f, LLVMLinkage::LLVMPrivateLinkage);
-        }
-
-        f = LLVMGetNextFunction(f);
-    }
-}
-
-unsafe fn module_purge_module_asm(module: *mut LLVMModule) {
-    LLVMSetModuleInlineAsm2(module, to_c_str("").as_ptr(), 0);
-}
-
 fn link_llvm_bincode(
     files: &ProjectLlvmBc,
     output: impl AsRef<Path>,
@@ -260,8 +151,17 @@ fn link_llvm_bincode(
             // all the declarations have been populated. I'm not sure if there's a more efficient way of
             // doing this while making sure all external items stay private.
 
+            // It might be better to track the dependency tree and do a topological sort and then link based on that,
+            // but finding the raw dependency tree sounds hard.
+
             for file in &files.deps {
                 let module = read_module(&file);
+
+                // Purge module assembly. The core crate seems to come with some inline assembly
+                // (I'm not sure why, might be for panic handling), but it's never used but also
+                // can't get automatically optimized away.
+                // I'm not familiar with any use cases for module-level inline assembly, so I'm
+                // just going to purge it.
                 module_purge_module_asm(module);
                 mark_all_module_items_for_linking(module);
                 let code = LLVMLinkModules2(project_module, module);
@@ -271,6 +171,7 @@ fn link_llvm_bincode(
             }
         }
 
+        // Linking is over, so all items marked for linking should become private.
         replace_linked_with_private(project_module);
 
         let pass_builder_opts = LLVMCreatePassBuilderOptions();
@@ -283,7 +184,7 @@ fn link_llvm_bincode(
         let machine_target = LLVMCreateTargetMachine(
             target,
             triple,
-            to_c_str("generic").as_ptr(),
+            to_c_str("generic").as_ptr(), // Optimize for a generic CPU by default.
             to_c_str("").as_ptr(),
             LLVMCodeGenOptLevel::LLVMCodeGenLevelAggressive,
             LLVMRelocMode::LLVMRelocDefault,
@@ -297,6 +198,9 @@ fn link_llvm_bincode(
             pass_builder_opts,
         );
 
+        // Mark everything as private (after optimizing). Because when this IR file is used,
+        // new functions will be created that reference these ones. These should be optimized
+        // away if they're unused.
         mark_all_as_private(project_module);
 
         let output_path = output.as_ref();

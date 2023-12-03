@@ -51,6 +51,9 @@ pub fn read_data() -> Vec<User> {
 pub fn build_complex_filter() -> JoinFilters {
     // Very arbitrary complex filters
 
+    // The burner filter is designed to fail on all users with many "or" statements, wasting a bunch of cpu time intentionally.
+    // It demonstrates that the JIT has a much better performance improvement, partly because it optimizes a lot of this away.
+    // If you don't use the burner filter, the JIT will still be faster than interpreted, just not as much faster.
     let burner_filter = JoinFilters::Filter(Filter {
         field: Field::FirstName,
         kind: FilterKind::StrStartsWith,

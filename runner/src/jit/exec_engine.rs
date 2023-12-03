@@ -56,6 +56,7 @@ impl JitExecutionEngine {
         };
 
         // Orc JIT can pull functions from the current executable, so passing in all of these is optional, but still possible.
+        // For example, you could use a custom allocator by overwriting the alloc functions.
         let mut all_mappings = vec![
             make_global_mapping("rust_begin_unwind", begin_unwind as u64),
             make_global_mapping("rust_eh_personality", rust_eh_personality as u64),

@@ -4,7 +4,9 @@ This is a demo project showing my solution for converting any rust to LLVM (incl
 
 This approach to JIT appears to be the best out there at the moment, and it's a similar approach to what projects like PostgreSQL do, except with full no_std Rust support.
 
-Below are reproduction instructions, but talking slides are available in `SLIDES.md`.
+Below are reproduction instructions, but talking slides are available in `_slides/SLIDES.md`.
+
+**NOTE:** This project is NOT production ready or safe in any way, and probably has many LLVM related memory leaks where I don't free the LLVM objects properly. It should only be used as reference for the general approach.
 
 ### Demo problem
 
